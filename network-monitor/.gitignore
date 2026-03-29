@@ -1,0 +1,29 @@
+# --- SEGURIDAD ---
+# No subir claves privadas ni configuración local
+.env
+.env.local
+
+# --- ARCHIVOS TEMPORALES ---
+# Ignorar los archivos de "memoria" del script
+/tmp/ultimo_trafico_*.txt
+*.tmp
+*.temp
+
+# --- LOGS ---
+# Archivos de registro de errores o ejecución
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- SISTEMA OPERATIVO ---
+# Archivos basura de macOS y Windows
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- EDITORES DE CÓDIGO ---
+# Carpetas de configuración de VSCode o IntelliJ
+.vscode/
+.idea/
+*.swp
