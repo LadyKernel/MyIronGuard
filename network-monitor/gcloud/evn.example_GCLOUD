@@ -1,0 +1,18 @@
+# ==========================================
+# CONFIGURACIÓN PARA GOOGLE CLOUD PLATFORM
+# ==========================================
+
+# Credenciales de Telegram
+TOKEN="tu_token_aqui"
+CHAT_ID="tu_chat_id_aqui"
+
+# Interfaz de red (suele ser ens4 o ens5 en GCP)
+INTERFACE="ens4"
+
+# --- LÍMITES DE ALERTA Y FACTURACIÓN (En GB) ---
+# Ideal para controlar el Free Tier o evitar sorpresas en la tarjeta
+LIMITE_DIARIO=1.0
+LIMITE_MENSUAL=100.0
+
+# Coste por GB de salida (Egress) en tu región de GCP (ej: 0.12 USD/EUR)
+PRECIO_GB=0.12

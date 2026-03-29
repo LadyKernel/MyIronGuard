@@ -1,0 +1,32 @@
+# --- SEGURIDAD ---
+# No subir claves privadas ni configuración local
+.env
+.env.local
+.env.*
+
+# --- ARCHIVOS TEMPORALES Y DE PRUEBAS ---
+# Ignorar los archivos de "memoria" del script (si se usan localmente)
+/tmp/
+ultimo_trafico_*.txt
+*.tmp
+*.temp
+test.json
+*.out
+
+# --- LOGS Y EJECUCIÓN EN SEGUNDO PLANO ---
+# Archivos de registro y salidas de procesos en background (típico en Linux)
+*.log
+nohup.out
+*.err
+
+# --- SISTEMA OPERATIVO ---
+# Archivos basura de macOS y Windows
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- EDITORES DE CÓDIGO ---
+# Carpetas de configuración de VSCode o IntelliJ
+.vscode/
+.idea/
+*.swp

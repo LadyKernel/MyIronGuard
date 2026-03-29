@@ -1,0 +1,19 @@
+# ==========================================
+# CONFIGURACIÓN PARA VPS ESTÁNDAR (Ilimitado)
+# ==========================================
+
+# Credenciales de Telegram
+TOKEN="tu_token_aqui"
+CHAT_ID="tu_chat_id_aqui"
+
+# Interfaz de red (suele ser eth0 o eno1 en VPS normales)
+INTERFACE="eth0"
+
+# --- LÍMITES DE SEGURIDAD ANTI-DDOS (En GB) ---
+# Si tu VPS tiene tráfico ILIMITADO, pon un límite alto.
+# El script actuará como alarma por si sufres un ataque o te hackean.
+LIMITE_DIARIO=500.0
+LIMITE_MENSUAL=5000.0
+
+# Coste por GB extra (Pon 0 si tu proveedor te da tráfico ilimitado)
+PRECIO_GB=0.00
