@@ -88,11 +88,10 @@ if [ "$AVISO_DIA" -eq 1 ] || [ "$AVISO_MES" -eq 1 ]; then
 🌐 Interfaz: $INTERFACE
 🖥️ Hostname: $(hostname)"
 
-    JSON_PAYLOAD=$(jq -n --arg cid "$CHAT_ID" --arg txt "$MENSAJE" '{chat_id: $cid, text: $txt, parse_mode: "Markdown"}')
-    RESPUESTA=$(curl -s -X POST "https://api.telegram.org/bot$TOKEN/sendMessage" -H "Content-Type: application/json" -d "$JSON_PAYLOAD")
+    TELEGRAM_MESSAGE_DATA=$(jq -n --arg cid "$CHAT_ID" --arg txt "$MENSAJE" '{chat_id: $cid, text: $txt, parse_mode: "Markdown"}')
+    RESPUESTA=$(curl -s -X POST "https://api.telegram.org/bot$TOKEN/sendMessage" -H "Content-Type: application/json" -d "$TELEGRAM_MESSAGE_DATA")
 
-    if echo "$RESPUESTA" | grep -q '"ok":true'; then
+if echo "$RESPUESTA" | grep -q '"ok":true'; then
         echo "$TOTAL_DIA_GB" > "$TEMP_DIA"
         echo "$TOTAL_MES_GB" > "$TEMP_MES"
-    fi
 fi
