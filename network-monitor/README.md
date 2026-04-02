@@ -84,6 +84,8 @@ Este script incluye una optimización crítica para entornos de producción:
 
 Actualización en Tiempo Real: A diferencia de otros monitores que dependen del intervalo de actualización del demonio de vnStat, este script ejecuta **vnstat -u** antes de realizar la lectura. Esto garantiza que los datos de consumo y el coste estimado que recibes en Telegram estén actualizados al segundo exacto de la ejecución.
 
+Cálculos Locale-Safe: Utiliza LC_NUMERIC=C y el motor awk internamente para garantizar que los cálculos matemáticos (como la multiplicación de decimales para el precio por GB) funcionen de manera robusta, independientemente del idioma base (locale) configurado en el servidor Linux.
+
 ---
 
 ## 🛠️ Solución de Problemas (Troubleshooting)
@@ -138,7 +140,6 @@ Sí, puedes clonar la carpeta para otra interfaz o simplemente cambiar la variab
 
 **¿Es seguro poner mi Token en el `.env`?**
 Sí, siempre y cuando **NO subas el archivo .env a GitHub**. El archivo `.gitignore` incluido en este repo está configurado para proteger tus credenciales.
-
 
 ---
 ## 📝 Licencia
