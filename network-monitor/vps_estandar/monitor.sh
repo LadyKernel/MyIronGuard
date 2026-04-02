@@ -1,5 +1,5 @@
 #!/bin/bash
-
+export LC_NUMERIC=C 
 # --- 1. CARGA DE CONFIGURACIÓN ---
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -f "$DIR/.env" ]; then
@@ -13,7 +13,7 @@ fi
 # INTERFAZ FIJA PARA VPS ESTÁNDAR
 INTERFACE="ens6"
 
-LIMITE_DIARIO=${LIMITE_DIARIO:-30}
+LIMITE_DIARIO=${LIMITE_DIARIO:-0.1}
 LIMITE_MENSUAL=${LIMITE_MENSUAL:-900}
 PRECIO_GB=${PRECIO_GB:-0}
 
@@ -56,13 +56,22 @@ TX_MES_GB=$(awk "BEGIN {printf \"%.2f\", $TX_MES_BYTES / $DIVISOR}")
 ULTIMO_DIA=$(cat "$TEMP_DIA")
 ULTIMO_MES=$(cat "$TEMP_MES")
 
-AVISO_DIA=$(awk "BEGIN {print ($TOTAL_DIA_GB > $LIMITE_DIARIO && $TOTAL_DIA_GB >= $ULTIMO_DIA + 0.05) ? 1 : 0}")
-AVISO_MES=$(awk "BEGIN {print ($TOTAL_MES_GB > $LIMITE_MENSUAL && $TOTAL_MES_GB >= $ULTIMO_MES + 0.1) ? 1 : 0}")
+# Uso de LC_NUMERIC=C y -v para evitar errores de coma flotante por idioma del sistema
+AVISO_DIA=$(LC_NUMERIC=C awk -v t_dia="$TOTAL_DIA_GB" -v l_dia="$LIMITE_DIARIO" -v u_dia="$ULTIMO_DIA" 'BEGIN {print (t_dia > l_dia && t_dia >= u_dia + 0.05) ? 1 : 0}')
+AVISO_MES=$(LC_NUMERIC=C awk -v t_mes="$TOTAL_MES_GB" -v l_mes="$LIMITE_MENSUAL" -v u_mes="$ULTIMO_MES" 'BEGIN {print (t_mes > l_mes && t_mes >= u_mes + 0.1) ? 1 : 0}')
+
+GASTO_DIARIO=$(cat "$TEMP_DIA")
+if [ -t 1 ]; then
+    echo "======================================"
+    echo "📊 Ejecución manual detectada"
+    echo "📈 Llevas gastado en el día: $TOTAL_DIA_GB GB (Última alerta en: $GASTO_DIARIO GB)"
+    echo "======================================"
+fi
 
 # --- 5. ENVÍO DE ALERTA ---
 if [ "$AVISO_DIA" -eq 1 ] || [ "$AVISO_MES" -eq 1 ]; then
-    COSTE_ESTIMADO=$(awk "BEGIN {printf \"%.2f\", $TX_MES_GB * $PRECIO_GB}")
-
+    # Cálculo seguro del coste
+    COSTE_ESTIMADO=$(LC_NUMERIC=C awk -v tx="$TX_MES_GB" -v precio="$PRECIO_GB" 'BEGIN {printf "%.2f", tx * precio}')
     formato_dinamico() {
         local val_gb="$1"
         local es_menor=$(awk "BEGIN {print ($val_gb < 1.0) ? 1 : 0}")
@@ -88,8 +97,8 @@ if [ "$AVISO_DIA" -eq 1 ] || [ "$AVISO_MES" -eq 1 ]; then
 🌐 Interfaz: $INTERFACE
 🖥️ Hostname: $(hostname)"
 
-    JSON_PAYLOAD=$(jq -n --arg cid "$CHAT_ID" --arg txt "$MENSAJE" '{chat_id: $cid, text: $txt, parse_mode: "Markdown"}')
-    RESPUESTA=$(curl -s -X POST "https://api.telegram.org/bot$TOKEN/sendMessage" -H "Content-Type: application/json" -d "$JSON_PAYLOAD")
+    TELEGRAM_MESSAGE_DATA=$(jq -n --arg cid "$CHAT_ID" --arg txt "$MENSAJE" '{chat_id: $cid, text: $txt, parse_mode: "Markdown"}')
+    RESPUESTA=$(curl -s -X POST "https://api.telegram.org/bot$TOKEN/sendMessage" -H "Content-Type: application/json" -d "$TELEGRAM_MESSAGE_DATA")
 
     if echo "$RESPUESTA" | grep -q '"ok":true'; then
         echo "$TOTAL_DIA_GB" > "$TEMP_DIA"
