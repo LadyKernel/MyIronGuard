@@ -141,6 +141,9 @@ Sí, puedes clonar la carpeta para otra interfaz o simplemente cambiar la variab
 **¿Es seguro poner mi Token en el `.env`?**
 Sí, siempre y cuando **NO subas el archivo .env a GitHub**. El archivo `.gitignore` incluido en este repo está configurado para proteger tus credenciales.
 
+
+## Si este script te ha ahorrado tiempo en la monitorización de tus servidores, considera darle una ⭐ para que otros puedan encontrarlo.
+
 ---
 ## 📝 Licencia
 Este proyecto está bajo la **Licencia MIT**. ¡Siéntete libre de usarlo y mejorarlo!
