@@ -146,4 +146,7 @@ Sí, siempre y cuando **NO subas el archivo .env a GitHub**. El archivo `.gitign
 
 ---
 ## 📝 Licencia
-Este proyecto está bajo la **Licencia MIT**. ¡Siéntete libre de usarlo y mejorarlo!
+
+Este proyecto está bajo la **Licencia MIT**. ¡Siéntete libre de usarlo, modificarlo y mejorarlo para tus propios laboratorios! 
+
+Para más detalles, consulta el archivo [LICENSE](./LICENSE).
