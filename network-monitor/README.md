@@ -20,6 +20,15 @@ Debido a cómo diferentes proveedores manejan la virtualización de red, este re
 * **🛡️ Anti-Spam Inteligente:** Sistema de memoria que solo notifica si el tráfico sigue aumentando significativamente tras superar los límites establecidos.
 * **🖥️ Multi-Instancia:** Muestra el *hostname* del servidor en la alerta, permitiendo identificar rápidamente qué VPS está consumiendo los recursos.
 * **⚡ Bajo Consumo:** Diseñado para ejecutarse en segundo plano sin penalizar el rendimiento del sistema.
+
+---
+
+## 🛠️ Registro de Cambios (v1.1 - Fix)
+En esta actualización hemos resuelto errores de precisión que afectaban a la fiabilidad del reporte en tiempo real:
+
+* **Sincronización de Alertas:** Se ha implementado un sistema de "Estado de Alerta" (.alert_state_...). El script ahora solo guarda el tráfico actual si y solo si la alerta de Telegram se envía con éxito. Esto evita que el script deje de avisar si hay un fallo de red momentáneo y previene el spam de mensajes.
+
+* **Robustez JSON (vnstat):** Se ha actualizado el selector de jq. Antes el uso de [-1] causaba lecturas nulas (0 GB) en ciertas versiones de vnstat al ejecutarlo manualmente. Ahora utilizamos el filtro | last y selectores duales (day // days), garantizando la lectura correcta en cualquier entorno.
 ---
 
 ## 🛠️ Requisitos Previos
