@@ -1,7 +1,11 @@
 #!/bin/bash
 
 # --- 1. CARGA DE CONFIGURACIÓN ---
+# Aseguramos formato numérico internacional (para evitar errores con comas/puntos)
+export LC_ALL=C
+
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 if [ -f "$DIR/.env" ]; then
     sed -i 's/\r//g' "$DIR/.env"
     source "$DIR/.env"
@@ -10,15 +14,16 @@ else
     exit 1
 fi
 
-# INTERFAZ FIJA PARA GOOGLE CLOUD
+# INTERFAZ PARA GOOGLE CLOUD
 INTERFACE="ens4"
 
 LIMITE_DIARIO=${LIMITE_DIARIO:-6}
 LIMITE_MENSUAL=${LIMITE_MENSUAL:-180}
 PRECIO_GB=${PRECIO_GB:-0}
 
-TEMP_DIA="/tmp/ultimo_trafico_dia_${INTERFACE}.txt"
-TEMP_MES="/tmp/ultimo_trafico_mes_${INTERFACE}.txt"
+# Usamos archivos ocultos en el mismo directorio para persistencia
+TEMP_DIA="$DIR/.ultimo_trafico_dia_${INTERFACE}.txt"
+TEMP_MES="$DIR/.ultimo_trafico_mes_${INTERFACE}.txt"
 
 if [ "$DEBUG" == "1" ]; then echo "--- [DEBUG GCP] --- Interface: $INTERFACE | Límite Día: $LIMITE_DIARIO GB | Límite Mes: $LIMITE_MENSUAL GB"; fi
 
@@ -36,10 +41,11 @@ get_val() {
     if [[ "$val" == "null" || -z "$val" ]]; then echo 0; else echo "$val"; fi
 }
 
-RX_DIA_BYTES=$(get_val '.interfaces[0].traffic.day[-1].rx' '.interfaces[0].traffic.days[-1].rx')
-TX_DIA_BYTES=$(get_val '.interfaces[0].traffic.day[-1].tx' '.interfaces[0].traffic.days[-1].tx')
-RX_MES_BYTES=$(get_val '.interfaces[0].traffic.month[-1].rx' '.interfaces[0].traffic.months[-1].rx')
-TX_MES_BYTES=$(get_val '.interfaces[0].traffic.month[-1].tx' '.interfaces[0].traffic.months[-1].tx')
+# FIX: Selector universal para day/days y month/months usando '| last'
+RX_DIA_BYTES=$(echo "$JSON_DATA" | jq -r '(.interfaces[0].traffic.day // .interfaces[0].traffic.days) | last | .rx // 0')
+TX_DIA_BYTES=$(echo "$JSON_DATA" | jq -r '(.interfaces[0].traffic.day // .interfaces[0].traffic.days) | last | .tx // 0')
+RX_MES_BYTES=$(echo "$JSON_DATA" | jq -r '(.interfaces[0].traffic.month // .interfaces[0].traffic.months) | last | .rx // 0')
+TX_MES_BYTES=$(echo "$JSON_DATA" | jq -r '(.interfaces[0].traffic.month // .interfaces[0].traffic.months) | last | .tx // 0')
 
 # --- 3. CONVERSIÓN A GB ---
 DIVISOR=1073741824
@@ -56,12 +62,31 @@ TX_MES_GB=$(awk "BEGIN {printf \"%.2f\", $TX_MES_BYTES / $DIVISOR}")
 ULTIMO_DIA=$(cat "$TEMP_DIA")
 ULTIMO_MES=$(cat "$TEMP_MES")
 
-AVISO_DIA=$(awk "BEGIN {print ($TOTAL_DIA_GB > $LIMITE_DIARIO && $TOTAL_DIA_GB >= $ULTIMO_DIA + 0.05) ? 1 : 0}")
-AVISO_MES=$(awk "BEGIN {print ($TOTAL_MES_GB > $LIMITE_MENSUAL && $TOTAL_MES_GB >= $ULTIMO_MES + 0.1) ? 1 : 0}")
+AVISO_DIA=$(awk -v t="$TOTAL_DIA_GB" -v l="$LIMITE_DIARIO" -v u="$ULTIMO_DIA" 'BEGIN {print (t > l && t >= u + 0.05) ? 1 : 0}')
+AVISO_MES=$(awk -v t="$TOTAL_MES_GB" -v l="$LIMITE_MENSUAL" -v u="$ULTIMO_MES" 'BEGIN {print (t > l && t >= u + 0.1) ? 1 : 0}')
+
+# --- SALIDA POR PANTALLA (Solo si se ejecuta a mano) ---
+if [ -t 1 ]; then
+    echo "======================================"
+    echo "📊 MONITOR DE RED GCP (Interfaz: $INTERFACE)"
+    echo "======================================"
+    echo "📅 Tráfico HOY: $TOTAL_DIA_GB GB (Límite: $LIMITE_DIARIO GB)"
+    echo "🗓️ Tráfico MES: $TOTAL_MES_GB GB (Límite: $LIMITE_MENSUAL GB)"
+    echo "--------------------------------------"
+    echo "🔔 Último aviso Telegram (Hoy): $ULTIMO_DIA GB"
+    echo "🔔 Último aviso Telegram (Mes): $ULTIMO_MES GB"
+
+    if [ "$AVISO_DIA" -eq 1 ] || [ "$AVISO_MES" -eq 1 ]; then
+        echo "⚠️ LÍMITE SUPERADO - Procesando alerta..."
+    else
+        echo "✅ Todo en orden. No se enviarán alertas."
+    fi
+    echo "======================================"
+fi
 
 # --- 5. ENVÍO DE ALERTA ---
 if [ "$AVISO_DIA" -eq 1 ] || [ "$AVISO_MES" -eq 1 ]; then
-    COSTE_ESTIMADO=$(awk "BEGIN {printf \"%.2f\", $TX_MES_GB * $PRECIO_GB}")
+    COSTE_ESTIMADO=$(awk -v tx="$TX_MES_GB" -v p="$PRECIO_GB" 'BEGIN {printf "%.2f", tx * p}')
 
     formato_dinamico() {
         local val_gb="$1"
@@ -91,7 +116,8 @@ if [ "$AVISO_DIA" -eq 1 ] || [ "$AVISO_MES" -eq 1 ]; then
     TELEGRAM_MESSAGE_DATA=$(jq -n --arg cid "$CHAT_ID" --arg txt "$MENSAJE" '{chat_id: $cid, text: $txt, parse_mode: "Markdown"}')
     RESPUESTA=$(curl -s -X POST "https://api.telegram.org/bot$TOKEN/sendMessage" -H "Content-Type: application/json" -d "$TELEGRAM_MESSAGE_DATA")
 
-if echo "$RESPUESTA" | grep -q '"ok":true'; then
+    if echo "$RESPUESTA" | grep -q '"ok":true'; then
         echo "$TOTAL_DIA_GB" > "$TEMP_DIA"
         echo "$TOTAL_MES_GB" > "$TEMP_MES"
+    fi
 fi
