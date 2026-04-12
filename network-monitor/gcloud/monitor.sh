@@ -1,4 +1,11 @@
 #!/bin/bash
+# -------------------------------------------------------------------------
+# Proyecto: GCloud Network Monitor
+# Author: LadyKerel
+# Repository: https://github.com/LadyKernel/MyIronGuard/tree/main/network-monitor
+# Licencia: MIT
+# Versión:  1.1.0
+# -------------------------------------------------------------------------
 
 # --- 1. CARGA DE CONFIGURACIÓN ---
 # Aseguramos formato numérico internacional (para evitar errores con comas/puntos)
