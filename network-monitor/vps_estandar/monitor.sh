@@ -87,25 +87,16 @@ if [ -t 1 ]; then
     echo "======================================"
 fi
 
-# --- 5. ENVÍO DE ALERTA A TELEGRAM ---
+# --- 5. ENVÍO A TELEGRAM (Versión Hosting/Límites) ---
 if [ "$AVISO_DIA" -eq 1 ] || [ "$AVISO_MES" -eq 1 ]; then
+    
+    # Cálculo de coste: Solo calcula si te has pasado del límite mensual
+    COSTE_ESTIMADO=$(awk -v tx="$TOTAL_MES_GB" -v lim="$LIMITE_MENSUAL" -v p="$PRECIO_GB" '
+        BEGIN {
+            if (tx > lim) printf "%.2f", (tx - lim) * p;
+            else printf "0.00";
+        }')
 
-#    COSTE_ESTIMADO=$(awk -v tx="$TX_MES_GB" -v precio="$PRECIO_GB" 'BEGIN {printf "%.2f", tx * precio}')
-
-    # Cálculo seguro del coste
-
-    COSTE_ESTIMADO=$(LC_NUMERIC=C awk -v tx="$TX_MES_GB" -v precio="$PRECIO_GB" 'BEGIN {printf "%.2f", tx * precio}')
-
-    formato_dinamico() {
-
-        local val_gb="$1"
-
-        local es_menor=$(awk "BEGIN {print ($val_gb < 1.0) ? 1 : 0}")
-
-        if [ "$es_menor" -eq 1 ]; then awk "BEGIN {printf \"%.2f MB\", $val_gb * 1024}"; else echo "$val_gb GB"; fi
-
-    }
-    # Función para mostrar MB si es menor a 1 GB
     formato_dinamico() {
         local val_gb="$1"
         local es_menor=$(awk "BEGIN {print ($val_gb < 1.0) ? 1 : 0}")
@@ -130,11 +121,10 @@ if [ "$AVISO_DIA" -eq 1 ] || [ "$AVISO_MES" -eq 1 ]; then
 📥 Descarga: $(formato_dinamico "$RX_MES_GB")
 📤 Subida: $(formato_dinamico "$TX_MES_GB")
 ✨ Total Mes: *$(formato_dinamico "$TOTAL_MES_GB")* / $LIMITE_MENSUAL GB
-💰 Coste Estimado (TX): *\$${COSTE_ESTIMADO}*
+💰 Coste Extra: *\$${COSTE_ESTIMADO}*
 -------------------------------
 🌐 Interfaz: $INTERFACE
 🖥️ Hostname: $(hostname)"
-
     # Asegúrate de que el TOKEN y CHAT_ID existen
     if [ ! -z "$TOKEN" ] && [ ! -z "$CHAT_ID" ]; then
         TELEGRAM_MESSAGE_DATA=$(jq -n --arg cid "$CHAT_ID" --arg txt "$MENSAJE" '{chat_id: $cid, text: $txt, parse_mode: "Markdown"}')
