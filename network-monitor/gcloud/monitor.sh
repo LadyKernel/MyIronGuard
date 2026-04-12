@@ -5,11 +5,13 @@
 # Repository: https://github.com/LadyKernel/MyIronGuard/tree/main/network-monitor
 # Licencia:    Creative Commons BY-NC 4.0 (Uso No Comercial)
 # Copyright:   (c) 2026 LadyKernel
-# Este programa es software libre: puedes redistribuirlo y/o modificarlo 
-# bajo los términos de la Licencia Pública General GNU.
-# USO COMERCIAL: Si eres una empresa y quieres usar este software 
-# con fines lucrativos, contacta conmigo en hola@lksys.es.
+# Copyright:   (c) 2026 LadyKernel
 # -------------------------------------------------------------------------
+# Este programa es gratuito para uso personal y educativo. 
+# QUEDA PROHIBIDO EL USO COMERCIAL O LUCRATIVO SIN PERMISO.
+# Si eres una empresa y quieres usar este software, contacta en: hola@lksys.es
+# -------------------------------------------------------------------------
+
 
 # --- 1. CARGA DE CONFIGURACIÓN ---
 # Aseguramos formato numérico internacional (para evitar errores con comas/puntos)
