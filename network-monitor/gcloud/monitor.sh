@@ -3,9 +3,12 @@
 # Proyecto: GCloud Network Monitor
 # Author: LadyKernel
 # Repository: https://github.com/LadyKernel/MyIronGuard/tree/main/network-monitor
-# Licencia: MIT
-# Versión:  1.1.0
-# Copyright (c) 2026 LadyKernel
+#Licencia:    GNU GPL v3
+# Copyright:   (c) 2026 LadyKernel
+# Este programa es software libre: puedes redistribuirlo y/o modificarlo 
+# bajo los términos de la Licencia Pública General GNU.
+# USO COMERCIAL: Si eres una empresa y quieres usar este software 
+# con fines lucrativos, contacta conmigo en hola@lksys.es.
 # -------------------------------------------------------------------------
 
 # --- 1. CARGA DE CONFIGURACIÓN ---
