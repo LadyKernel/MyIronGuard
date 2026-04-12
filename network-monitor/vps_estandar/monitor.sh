@@ -1,4 +1,11 @@
 #!/bin/bash
+# -------------------------------------------------------------------------
+# Proyecto: VPS Network Monitor
+# Author: LadyKerel
+# Repository: https://github.com/LadyKernel/MyIronGuard/tree/main/network-monitor
+# Licencia: MIT
+# Versión:  1.1.0
+# -------------------------------------------------------------------------
 
 # Aseguramos el formato numérico internacional (puntos en vez de comas)
 export LC_ALL=C
