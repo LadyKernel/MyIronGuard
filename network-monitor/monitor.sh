@@ -1,4 +1,12 @@
 #!/bin/bash
+# -------------------------------------------------------------------------
+# Proyecto: GCloud Network Monitor
+# Author: LadyKernel
+# Repository: https://github.com/LadyKernel/MyIronGuard/tree/main/network-monitor
+# Licencia: MIT
+# Versión:  1.1.0
+Copyright (c) 2026 LadyKernel
+# -------------------------------------------------------------------------
 
 # --- 1. CARGA DE CONFIGURACIÓN ---
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
