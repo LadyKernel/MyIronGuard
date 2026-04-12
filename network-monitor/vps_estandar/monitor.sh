@@ -3,7 +3,7 @@
 # Proyecto: VPS Network Monitor
 # Author: LadyKernel
 # Repository: https://github.com/LadyKernel/MyIronGuard/tree/main/network-monitor
-#Licencia:    GNU GPL v3
+# Licencia:    Creative Commons BY-NC 4.0 (Uso No Comercial)
 # Copyright:   (c) 2026 LadyKernel
 # Este programa es software libre: puedes redistribuirlo y/o modificarlo 
 # bajo los términos de la Licencia Pública General GNU.
