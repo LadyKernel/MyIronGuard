@@ -1,143 +1,139 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # -------------------------------------------------------------------------
-# Proyecto: VPS Network Monitor
+# Proyecto: Network Monitor - VPS
 # Author: LadyKernel
-# Repository: https://github.com/LadyKernel/MyIronGuard/tree/main/network-monitor
-# Licencia:    Creative Commons BY-NC 4.0 (Uso No Comercial)
-# Copyright:   (c) 2026 LadyKernel
+# Repository: https://github.com/LadyKernel/MyIronGuard
 # -------------------------------------------------------------------------
-# Este programa es gratuito para uso personal y educativo. 
-# QUEDA PROHIBIDO EL USO COMERCIAL O LUCRATIVO SIN PERMISO.
-# Si eres una empresa y quieres usar este software, contacta en: hola@lksys.es
+# Licencia: PolyForm Noncommercial License 1.0.0
+# Copyright: (c) 2026 LadyKernel
+# -------------------------------------------------------------------------
+# Se permite el uso personal y educativo gratuito.
+# El uso comercial o empresarial requiere autorización previa.
+#
+# Consultas de licencias o uso profesional: hola@lksys.es
 # -------------------------------------------------------------------------
 
-# Aseguramos el formato numérico internacional (puntos en vez de comas)
-export LC_ALL=C
+# --- 1. CONFIGURACIÓN DE RUTAS (HARDENING) ---
+STAT="/usr/bin/stat"
+CHMOD="/usr/bin/chmod"
+VNSTAT="/usr/bin/vnstat"
+AWK="/usr/bin/awk"
+JQ="/usr/bin/jq"
+DATE="/usr/bin/date"
+CURL="/usr/bin/curl"
 
-# --- 1. CARGA DE CONFIGURACIÓN ---
+# --- 2. CARGA DE CONFIGURACIÓN ---
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENV_FILE="$DIR/.env"
 
-if [ -f "$DIR/.env" ]; then
-    # Limpiamos retornos de carro por si se editó en Windows
-    sed -i 's/\r//g' "$DIR/.env"
-    export $(grep -v '^#' "$DIR/.env" | xargs)
+if [ -f "$ENV_FILE" ]; then
+    # Hardening: Asegurar que el .env sea privado
+    PERMS=$($STAT -c "%a" "$ENV_FILE" 2>/dev/null)
+    if [ "$PERMS" != "600" ]; then
+        $CHMOD 600 "$ENV_FILE" 2>/dev/null
+    fi
+
+    # Limpieza y carga de variables
+    sed -i 's/\r//g' "$ENV_FILE"
+    set -a; . "$ENV_FILE"; set +a
 else
     echo "❌ Error: Archivo .env no encontrado en $DIR"
     exit 1
 fi
 
-# Puedes poner la interfaz en el .env, si no, usa ens6 por defecto
-INTERFACE=${INTERFACE:-"ens6"}
+# --- VERIFICACIÓN CRÍTICA ---
+# Si la variable INTERFACES no está definida en el .env, el script se detiene.
+if [ -z "$INTERFACES" ]; then
+    echo "❌ Error: La variable INTERFACES no está definida en el archivo .env"
+    exit 1
+fi
 
+# Configuración por defecto para cálculos (si no están en .env)
 LIMITE_DIARIO=${LIMITE_DIARIO:-0.1}
 LIMITE_MENSUAL=${LIMITE_MENSUAL:-900}
 PRECIO_GB=${PRECIO_GB:-0}
 
-# Moviendo los archivos de estado a la carpeta del script (evita líos de permisos en /tmp)
-STATE_DIA="$DIR/.alert_state_dia_${INTERFACE}.txt"
-STATE_MES="$DIR/.alert_state_mes_${INTERFACE}.txt"
+# --- 3. FUNCIONES AUXILIARES ---
+calc_gb() { $AWK -v b="$1" 'BEGIN {printf "%.2f", b/1073741824}'; }
 
-# --- 2. CAPTURA DE DATOS (NATIVA Y ROBUSTA) ---
-# Actualizamos vnstat antes de leer
-vnstat -u -i "$INTERFACE" > /dev/null 2>&1
-JSON_DATA=$(vnstat -i "$INTERFACE" --json 2>/dev/null)
+formato_dinamico() {
+    $AWK -v n="$1" 'BEGIN { if (n < 1 && n > 0) printf "%.2f MB", n*1024; else printf "%.2f GB", n; }'
+}
 
-if [ -z "$JSON_DATA" ]; then
-    echo "❌ Error: No se pudo obtener datos JSON de vnstat para la interfaz $INTERFACE."
-    exit 1
-fi
+# --- 4. BUCLE DE PROCESAMIENTO ---
+for IFACE in $INTERFACES; do
+    # Asignación dinámica de límites por interfaz
+    IFACE_UPPER=$(echo "$IFACE" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
+    VAR_DIA="LIMITE_DIARIO_${IFACE_UPPER}"
+    VAR_MES="LIMITE_MENSUAL_${IFACE_UPPER}"
 
-# Extracción a prueba de balas (busca 'day/month' o 'days/months' y coge el último valor)
-RX_DIA_BYTES=$(echo "$JSON_DATA" | jq -r '(.interfaces[0].traffic.day // .interfaces[0].traffic.days) | last | .rx // 0')
-TX_DIA_BYTES=$(echo "$JSON_DATA" | jq -r '(.interfaces[0].traffic.day // .interfaces[0].traffic.days) | last | .tx // 0')
-RX_MES_BYTES=$(echo "$JSON_DATA" | jq -r '(.interfaces[0].traffic.month // .interfaces[0].traffic.months) | last | .rx // 0')
-TX_MES_BYTES=$(echo "$JSON_DATA" | jq -r '(.interfaces[0].traffic.month // .interfaces[0].traffic.months) | last | .tx // 0')
+    LIM_DIA=${!VAR_DIA:-$LIMITE_DIARIO}
+    LIM_MES=${!VAR_MES:-$LIMITE_MENSUAL}
 
-# --- 3. CONVERSIÓN A GB ---
-DIVISOR=1073741824
-TOTAL_DIA_GB=$(awk "BEGIN {printf \"%.2f\", ($RX_DIA_BYTES + $TX_DIA_BYTES) / $DIVISOR}")
-TOTAL_MES_GB=$(awk "BEGIN {printf \"%.2f\", ($RX_MES_BYTES + $TX_MES_BYTES) / $DIVISOR}")
-RX_DIA_GB=$(awk "BEGIN {printf \"%.2f\", $RX_DIA_BYTES / $DIVISOR}")
-TX_DIA_GB=$(awk "BEGIN {printf \"%.2f\", $TX_DIA_BYTES / $DIVISOR}")
-RX_MES_GB=$(awk "BEGIN {printf \"%.2f\", $RX_MES_BYTES / $DIVISOR}")
-TX_MES_GB=$(awk "BEGIN {printf \"%.2f\", $TX_MES_BYTES / $DIVISOR}")
+    STATE_DIA="$DIR/.alert_state_dia_${IFACE}.txt"
+    STATE_MES="$DIR/.alert_state_mes_${IFACE}.txt"
 
-# --- 4. LÓGICA DE ALERTAS ---
-[ -f "$STATE_DIA" ] || echo "0" > "$STATE_DIA"
-[ -f "$STATE_MES" ] || echo "0" > "$STATE_MES"
-ULTIMO_ALERTA_DIA=$(cat "$STATE_DIA")
-ULTIMO_ALERTA_MES=$(cat "$STATE_MES")
+    # Inicializar archivos de estado si no existen
+    [ -f "$STATE_DIA" ] || echo "0" > "$STATE_DIA"
+    [ -f "$STATE_MES" ] || echo "0" > "$STATE_MES"
 
-# Comprueba si superamos el límite Y si ha subido al menos 0.05GB desde el último aviso
-AVISO_DIA=$(awk -v t_dia="$TOTAL_DIA_GB" -v l_dia="$LIMITE_DIARIO" -v u_dia="$ULTIMO_ALERTA_DIA" 'BEGIN {print (t_dia > l_dia && t_dia >= u_dia + 0.05) ? 1 : 0}')
-AVISO_MES=$(awk -v t_mes="$TOTAL_MES_GB" -v l_mes="$LIMITE_MENSUAL" -v u_mes="$ULTIMO_ALERTA_MES" 'BEGIN {print (t_mes > l_mes && t_mes >= u_mes + 0.1) ? 1 : 0}')
+    # Actualizar base de datos vnstat y capturar JSON
+    $VNSTAT -u -i "$IFACE" > /dev/null 2>&1
+    JSON_DATA=$($VNSTAT -i "$IFACE" --json 2>/dev/null)
 
-# --- SALIDA POR PANTALLA (SI SE EJECUTA A MANO) ---
-if [ -t 1 ]; then
-    echo "======================================"
-    echo "📊 MONITOR DE RED (Interfaz: $INTERFACE)"
-    echo "======================================"
-    echo "📅 Tráfico HOY: $TOTAL_DIA_GB GB (Límite: $LIMITE_DIARIO GB)"
-    echo "🗓️ Tráfico MES: $TOTAL_MES_GB GB (Límite: $LIMITE_MENSUAL GB)"
-    echo "--------------------------------------"
-    echo "🔔 Último aviso Telegram (Hoy): ${ULTIMO_ALERTA_DIA} GB"
-    echo "🔔 Último aviso Telegram (Mes): ${ULTIMO_ALERTA_MES} GB"
-
-    if [ "$AVISO_DIA" -eq 1 ] || [ "$AVISO_MES" -eq 1 ]; then
-        echo "⚠️ LÍMITE SUPERADO - Enviando alerta a Telegram..."
-    else
-        echo "✅ Todo en orden. No se enviarán alertas."
+    if [ -z "$JSON_DATA" ] || [ "$JSON_DATA" == "null" ]; then
+        echo "⚠️  INTERFAZ: $IFACE - Sin datos. Verifica con: vnstat -i $IFACE --add"
+        continue
     fi
-    echo "======================================"
-fi
 
-# --- 5. ENVÍO A TELEGRAM (Versión Hosting/Límites) ---
-if [ "$AVISO_DIA" -eq 1 ] || [ "$AVISO_MES" -eq 1 ]; then
-    
-    # Cálculo de coste: Solo calcula si te has pasado del límite mensual
-    COSTE_ESTIMADO=$(awk -v tx="$TOTAL_MES_GB" -v lim="$LIMITE_MENSUAL" -v p="$PRECIO_GB" '
-        BEGIN {
-            if (tx > lim) printf "%.2f", (tx - lim) * p;
-            else printf "0.00";
-        }')
+    # Extracción de datos con JQ
+    RX_D=$(echo "$JSON_DATA" | $JQ -r '(.interfaces[0].traffic.day // .interfaces[0].traffic.days) | last | .rx // 0')
+    TX_D=$(echo "$JSON_DATA" | $JQ -r '(.interfaces[0].traffic.day // .interfaces[0].traffic.days) | last | .tx // 0')
+    RX_M=$(echo "$JSON_DATA" | $JQ -r '(.interfaces[0].traffic.month // .interfaces[0].traffic.months) | last | .rx // 0')
+    TX_M=$(echo "$JSON_DATA" | $JQ -r '(.interfaces[0].traffic.month // .interfaces[0].traffic.months) | last | .tx // 0')
 
-    formato_dinamico() {
-        local val_gb="$1"
-        local es_menor=$(awk "BEGIN {print ($val_gb < 1.0) ? 1 : 0}")
-        if [ "$es_menor" -eq 1 ]; then
-            awk "BEGIN {printf \"%.2f MB\", $val_gb * 1024}"
-        else
-            echo "$val_gb GB"
-        fi
-    }
+    # Conversión a GB
+    TOTAL_DIA_GB=$($AWK -v r=$(calc_gb "$RX_D") -v t=$(calc_gb "$TX_D") 'BEGIN {printf "%.2f", r+t}')
+    TOTAL_MES_GB=$($AWK -v r=$(calc_gb "$RX_M") -v t=$(calc_gb "$TX_M") 'BEGIN {printf "%.2f", r+t}')
 
-    TITULO="⚠️ *ALERTA DE TRÁFICO VPS*"
-    [ "$AVISO_MES" -eq 1 ] && TITULO="🚨 *ALERTA CRÍTICA VPS: LÍMITE MENSUAL*"
+    # Lógica de Avisos (Comparación con último estado)
+    ULTIMO_ALERTA_DIA=$(cat "$STATE_DIA")
+    ULTIMO_ALERTA_MES=$(cat "$STATE_MES")
 
-    MENSAJE="$TITULO
--------------------------------
-📅 *CONSUMO DE HOY:*
-📥 Descarga: $(formato_dinamico "$RX_DIA_GB")
-📤 Subida: $(formato_dinamico "$TX_DIA_GB")
-📊 Total Día: *$(formato_dinamico "$TOTAL_DIA_GB")* / $LIMITE_DIARIO GB
+    AVISO_D=$($AWK -v t="$TOTAL_DIA_GB" -v l="$LIM_DIA" -v u="$ULTIMO_ALERTA_DIA" 'BEGIN {print (t > l && t >= u + 0.05) ? 1 : 0}')
+    AVISO_M=$($AWK -v t="$TOTAL_MES_GB" -v l="$LIM_MES" -v u="$ULTIMO_ALERTA_MES" 'BEGIN {print (t > l && t >= u + 0.1) ? 1 : 0}')
 
-🗓️ *CONSUMO DEL MES ($(date +%B)):*
-📥 Descarga: $(formato_dinamico "$RX_MES_GB")
-📤 Subida: $(formato_dinamico "$TX_MES_GB")
-✨ Total Mes: *$(formato_dinamico "$TOTAL_MES_GB")* / $LIMITE_MENSUAL GB
-💰 Coste Extra: *\$${COSTE_ESTIMADO}*
--------------------------------
-🌐 Interfaz: $INTERFACE
-🖥️ Hostname: $(hostname)"
-    # Asegúrate de que el TOKEN y CHAT_ID existen
-    if [ ! -z "$TOKEN" ] && [ ! -z "$CHAT_ID" ]; then
-        TELEGRAM_MESSAGE_DATA=$(jq -n --arg cid "$CHAT_ID" --arg txt "$MENSAJE" '{chat_id: $cid, text: $txt, parse_mode: "Markdown"}')
-        RESPUESTA=$(curl -s -X POST "https://api.telegram.org/bot$TOKEN/sendMessage" -H "Content-Type: application/json" -d "$TELEGRAM_MESSAGE_DATA")
+    # --- SALIDA POR CONSOLA (Si se ejecuta manualmente) ---
+    if [ -t 1 ]; then
+        echo "======================================"
+        echo "📊 MONITOR DE RED (Interfaz: $IFACE)"
+        echo "======================================"
+        echo "📅 Tráfico HOY: $TOTAL_DIA_GB GB (Límite: $LIM_DIA GB)"
+        echo "🗓️ Tráfico MES: $TOTAL_MES_GB GB (Límite: $LIM_MES GB)"
+        echo "🔔 Último aviso Telegram (Hoy): ${ULTIMO_ALERTA_DIA} GB"
+        echo "🔔 Último aviso Telegram (Mes): ${ULTIMO_ALERTA_MES} GB"
+        echo "--------------------------------------"
+        [ "$AVISO_D" -eq 1 ] || [ "$AVISO_M" -eq 1 ] && echo "⚠️ LÍMITE SUPERADO" || echo "✅ Todo en orden."
+        echo "======================================"
+    fi
 
-        # Solo guardamos el estado SI el mensaje de Telegram se envió correctamente
-        if echo "$RESPUESTA" | grep -q '"ok":true'; then
+    # --- ENVÍO A TELEGRAM ---
+    if [ "$AVISO_D" -eq 1 ] || [ "$AVISO_M" -eq 1 ]; then
+        COSTE=$($AWK -v tx="$TOTAL_MES_GB" -v lim="$LIM_MES" -v p="$PRECIO_GB" 'BEGIN {if(tx>lim) printf "%.2f", (tx-lim)*p; else printf "0.00"}')
+
+        MENSAJE="⚠️ *ALERTA VPS* ($IFACE)%0A"
+        MENSAJE+="Hoy: *$(formato_dinamico "$TOTAL_DIA_GB")* / $LIM_DIA GB%0A"
+        MENSAJE+="Mes: *$(formato_dinamico "$TOTAL_MES_GB")* / $LIM_MES GB%0A"
+        MENSAJE+="Extra: *\$${COSTE}*"
+
+        if [[ -n "${TOKEN}" && -n "${CHAT_ID}" ]]; then
+            $CURL -s -X POST "https://api.telegram.org/bot$TOKEN/sendMessage" \
+                -d "chat_id=$CHAT_ID&text=$MENSAJE&parse_mode=Markdown" > /dev/null
+
+            # Guardar estado actual para evitar spam
             echo "$TOTAL_DIA_GB" > "$STATE_DIA"
             echo "$TOTAL_MES_GB" > "$STATE_MES"
         fi
     fi
-fi
+done
+

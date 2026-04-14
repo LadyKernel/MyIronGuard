@@ -155,7 +155,14 @@ Sí, siempre y cuando **NO subas el archivo .env a GitHub**. El archivo `.gitign
 
 ---
 ## 📝 Licencia
+Este proyecto se distribuye bajo la licencia PolyForm Noncommercial License 1.0.0.
 
-Este proyecto está bajo la **Licencia MIT**. ¡Siéntete libre de usarlo, modificarlo y mejorarlo para tus propios laboratorios! 
+Uso Comunitario: Eres libre de usar, modificar y mejorar este monitor para tus laboratorios personales y proyectos educativos.
 
-Para más detalles, consulta el archivo [LICENSE](./LICENSE).
+Uso Profesional: El uso en entornos corporativos, por organizaciones con ánimo de lucro o para fines comerciales requiere una autorización y licencia específica.
+
+Para entender todos los términos legales, consulta el archivo LICENSE.
+
+¿Necesitas una licencia comercial o tienes dudas sobre su integración profesional?
+
+📩 Contacto: hola@lksys.es
