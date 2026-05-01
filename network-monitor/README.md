@@ -60,6 +60,8 @@ cd MyIronGuard/network-monitor/vps-estandar # o /gcloud
 | **LIMITE_DIARIO** | Umbral en GB para aviso diario | `1.5` |
 | **LIMITE_MENSUAL** | Umbral en GB para aviso mensual | `100.0` |
 | **PRECIO_GB** | Precio por GB de salida (Egress) | `0.12` |
+| **UMBRAL_ALERTA** | Configuración Umbral alerta Critica | `0.9 (90%)` |
+
 
 3. **Dale permisos de ejecución:**
    chmod +x monitor.sh
@@ -154,15 +156,15 @@ Sí, siempre y cuando **NO subas el archivo .env a GitHub**. El archivo `.gitign
 ## Si este script te ha ahorrado tiempo en la monitorización de tus servidores, considera darle una ⭐ para que otros puedan encontrarlo.
 
 ---
-## 📝 Licencia
-Este proyecto se distribuye bajo la licencia PolyForm Noncommercial License 1.0.0.
+## 🛡️ Licencia y Uso Comercial
 
-Uso Comunitario: Eres libre de usar, modificar y mejorar este monitor para tus laboratorios personales y proyectos educativos.
+Este proyecto se distribuye bajo la licencia **PolyForm Noncommercial License 1.0.0**.
 
-Uso Profesional: El uso en entornos corporativos, por organizaciones con ánimo de lucro o para fines comerciales requiere una autorización y licencia específica.
+*   **Uso Comunitario:** Eres libre de usar, modificar y mejorar este monitor para tus laboratorios personales y proyectos educativos.
+*   **Uso Profesional:** El uso en entornos corporativos, organizaciones con ánimo de lucro o fines comerciales requiere una autorización específica.
 
-Para entender todos los términos legales, consulta el archivo LICENSE.
+> [!IMPORTANT]
+> El uso de este software en entornos de producción empresarial sin la licencia correspondiente infringe los términos de uso. Para entender todos los términos legales, consulta el archivo `LICENSE`.
 
-¿Necesitas una licencia comercial o tienes dudas sobre su integración profesional?
-
-📩 Contacto: hola@lksys.es
+**¿Necesitas una licencia comercial o soporte para su integración?**
+📩 **Contacto:** [hola@lksys.es](mailto:hola@lksys.es)

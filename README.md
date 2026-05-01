@@ -2,6 +2,14 @@
 <img src="assets/banner.png" alt="MyIronGuard Banner" />
 </p>
 
+# 🛡️ MyIronGuard
+
+![Licencia](https://img.shields.io/badge/license-PolyForm_NC-blue)
+![Versión](https://img.shields.io/badge/version-2.0-orange)
+![Bash](https://img.shields.io/badge/script-Bash-green)
+![GitHub Stars](https://img.shields.io/github/stars/LadyKernel/MyIronGuard?style=social)
+![Visitas](https://komarev.com/ghpvc/?username=LadyKernel&repo=MyIronGuard&color=green)
+
 🛡️ MyIronGuard
 Secure by design. Built by LadyKernel.
 

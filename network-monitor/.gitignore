@@ -3,6 +3,9 @@
 .env
 .env.local
 .env.*
+.alert_state_*
+.last_month_*
+
 
 # --- ARCHIVOS TEMPORALES Y DE PRUEBAS ---
 # Ignorar los archivos de "memoria" del script (si se usan localmente)
