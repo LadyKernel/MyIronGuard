@@ -115,7 +115,7 @@ Si quieres forzar que el script olvide que ya te ha avisado, borra la memoria te
 ## 📝 Ejemplo de Alerta
 
 Cuando el script detecta un exceso de consumo, recibirás un mensaje como este:
-
+```text
 ℹ️ INFORME VPS GCLOUD
 
 📆 Hoy
@@ -128,7 +128,7 @@ Cuando el script detecta un exceso de consumo, recibirás un mensaje como este:
 -------------------------------
 🌐 Interfaz: ens4
 🖥️ Hostname: mi-vps-gratuito
-
+```
 ## ❓ Preguntas Frecuentes (FAQ)
 
 **¿Cómo cambio la frecuencia de las alertas?**
