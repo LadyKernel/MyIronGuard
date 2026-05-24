@@ -116,21 +116,18 @@ Si quieres forzar que el script olvide que ya te ha avisado, borra la memoria te
 
 Cuando el script detecta un exceso de consumo, recibirás un mensaje como este:
 
-> ⚠️ **ALERTA DE TRÁFICO VPS**
-> -------------------------------
-> 📅 **CONSUMO DE HOY:**
-> 📥 Descarga: 0.85 GB
-> 📤 Subida: 0.40 GB
-> 📊 Total Día: **1.25 GB** / 1.0 GB
->
-> 🗓️ **CONSUMO DEL MES (Marzo):**
-> 📥 Descarga: 40.20 GB
-> 📤 Subida: 15.30 GB
-> ✨ Total Mes: **55.50 GB** / 100.0 GB
-> 💰 Coste Estimado (TX): **$1.84**
-> -------------------------------
-> 🌐 Interfaz: ens4
-> 🖥️ Hostname: google-cloud-vps
+ℹ️ INFORME VPS GCLOUD
+
+📆 Hoy
+┣ 📊 Total Día: 61.44 MB / 5.00 GB
+
+🗓️ Consumo del mes (May):
+┣ 📦 Total Mes: 1.92 GB / 180 GB (1.1%)
+┣ 💰 Coste Extra: $0.00
+┗ 🚦 Estado: 🟢 NORMAL
+-------------------------------
+🌐 Interfaz: ens4
+🖥️ Hostname: mi-vps-gratuito
 
 ## ❓ Preguntas Frecuentes (FAQ)
 
