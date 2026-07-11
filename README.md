@@ -17,7 +17,22 @@ Bienvenido/a a MyIronGuard. Este repositorio documenta la configuración, despli
 
 El objetivo principal es disponer de un entorno seguro, privado y totalmente bajo mi control, que además utilizo como laboratorio para seguir aprendiendo y practicando ciberseguridad y administración de sistemas.
 
-🎯 Objetivos del Proyecto
+---
+
+## 🛠️ Proyectos Destacados en Producción 🚀
+
+Aunque este repositorio es mi sandbox de aprendizaje, alberga herramientas completamente funcionales desarrolladas por mí que están operativas en entornos reales:
+
+### 📊 [Network Monitor CLI (FinOps & Anti-DDoS)](./network-monitor)
+Una herramienta ligera y eficiente para monitorear el tráfico de red en servidores Linux utilizando **vnStat** y con notificaciones automáticas integradas a **Telegram**.
+*   **Control de Costes (FinOps):** Calcula automáticamente el gasto estimado basado en el tráfico de salida (*Egress*), ideal para proteger el Free Tier de GCP o AWS.
+*   **Seguridad:** Funciona como alarma Anti-DDoS/Anomalías al detectar picos de tráfico inusuales en tiempo real.
+*   **Estado:** En producción activa.
+*   👉 **[Ver código y guía de instalación detallada aquí](./network-monitor)**
+
+---
+
+## 🎯 Objetivos del Proyecto
 Laboratorio Técnico: Crear un entorno propio para practicar y mejorar habilidades en Linux, redes y seguridad.
 
 Conectividad Segura: Configurar una VPN funcional (WireGuard) para tunelizar el tráfico de forma privada.
@@ -28,7 +43,9 @@ Gestión de Infraestructura: Administrar servicios y configuraciones críticas e
 
 Aprendizaje Continuo: Utilizar este nodo como sandbox para experimentar y reforzar conocimientos.
 
-🛠️ Tecnologías Utilizadas
+---
+
+## 🛠️ Tecnologías Utilizadas
 Sistema: Ubuntu Server (VPS en Google Cloud)
 
 VPN: WireGuard
@@ -37,7 +54,9 @@ Acceso: SSH con autenticación por clave pública
 
 Seguridad: UFW (Firewall), Fail2Ban, ajustes básicos de hardening del kernel
 
-🔐 Medidas de Hardening Aplicadas
+---
+
+## 🔐 Medidas de Hardening Aplicadas
 Para garantizar la integridad del entorno, se han implementado varias capas de seguridad:
 
 Acceso SSH Restringido:
@@ -62,7 +81,9 @@ Prevención de DNS Leaks:
 
 Uso de DNS seguros dentro del túnel
 
-💡 Retos y Aprendizajes
+---
+
+## 💡 Retos y Aprendizajes
 Este proyecto me ha permitido reforzar conocimientos clave en:
 
 Enrutamiento y NAT
@@ -77,6 +98,8 @@ Arquitectura de red en entornos cloud
 
 No es un proyecto corporativo, pero sí un entorno real que utilizo para aprender, experimentar y mejorar mis habilidades técnicas.
 
-👩‍💻 Sobre mí
+---
+
+## 👩‍💻 Sobre mí
 Soy LadyKernel, con más de 15 años trabajando en informática y actualmente sigo profundizando en Linux, redes y ciberseguridad.
 Siempre construyendo, siempre aprendiendo.
