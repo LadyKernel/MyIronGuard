@@ -21,6 +21,11 @@ STAT="/usr/bin/stat"; CHMOD="/usr/bin/chmod"; VNSTAT="/usr/bin/vnstat"
 AWK="/usr/bin/awk"; JQ="/usr/bin/jq"; DATE="/usr/bin/date"; CURL="/usr/bin/curl"
 REPO_URL="https://github.com/LadyKernel/MyIronGuard"
 
+# 1.4 Verificación de dependencias de binarios
+for BIN in "$VNSTAT" "$JQ" "$CURL" "$AWK" "$DATE" "$STAT" "$CHMOD"; do
+    [ -x "$BIN" ] || { echo "❌ ERROR: Falta o no es ejecutable: $BIN" >&2; exit 1; }
+done
+
 # --- 2. CARGA DE CONFIGURACIÓN ---
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="$DIR/.env"
@@ -44,6 +49,8 @@ calc_gb() { $AWK -v b="$1" 'BEGIN {printf "%.2f", b/1073741824}'; }
 formato_dinamico() { $AWK -v n="$1" 'BEGIN { if (n < 1 && n > 0) printf "%.2f MB", n*1024; else printf "%.2f GB", n; }'; }
 
 # --- 4. BUCLE DE PROCESAMIENTO ---
+FALLO_ENVIO=0
+
 for IFACE in $INTERFACES; do
     # Limpieza de variables para evitar "unbound"
     IFACE_UPPER=$(echo "$IFACE" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
@@ -54,16 +61,33 @@ for IFACE in $INTERFACES; do
     LIM_DIA=${!VAR_DIA:-$LIMITE_DIARIO}
     LIM_MES=${!VAR_MES:-$LIMITE_MENSUAL}
 
+    # 1.3 Validación contra división por cero o limite nulo
+    if ! $AWK -v l="$LIM_MES" 'BEGIN { exit !(l+0 > 0) }'; then
+        echo "❌ ERROR [$IFACE]: LIMITE_MENSUAL ($LIM_MES) debe ser mayor que 0" >&2
+        FALLO_ENVIO=1
+        continue
+    fi
+
     STATE_DIA="$DIR/.alert_state_dia_${IFACE}.txt"
     STATE_MES="$DIR/.alert_state_mes_${IFACE}.txt"
     CONTROL_MES="$DIR/.last_month_${IFACE}.txt"
+    CONTROL_DIA="$DIR/.last_day_${IFACE}.txt"
 
-    # Reset mensual (si los archivos no existen, se crean con 0)
+    DIA_ACTUAL=$($DATE +%Y-%m-%d)
     MES_ACTUAL=$($DATE +%m)
+
+    [ -f "$CONTROL_DIA" ] || echo "$DIA_ACTUAL" > "$CONTROL_DIA"
     [ -f "$CONTROL_MES" ] || echo "$MES_ACTUAL" > "$CONTROL_MES"
     [ -f "$STATE_DIA" ] || echo "0" > "$STATE_DIA"
     [ -f "$STATE_MES" ] || echo "0" > "$STATE_MES"
 
+    # 1.1 Rollover diario del estado
+    if [ "$DIA_ACTUAL" != "$(cat "$CONTROL_DIA")" ]; then
+        echo "0" > "$STATE_DIA"
+        echo "$DIA_ACTUAL" > "$CONTROL_DIA"
+    fi
+
+    # Reset mensual
     if [ "$MES_ACTUAL" != "$(cat "$CONTROL_MES")" ]; then
         echo "0" > "$STATE_DIA"; echo "0" > "$STATE_MES"; echo "$MES_ACTUAL" > "$CONTROL_MES"
     fi
@@ -126,8 +150,24 @@ for IFACE in $INTERFACES; do
             "$(formato_dinamico "$TOTAL_MES_GB")" "$LIM_MES" "$PORC_MES" "$COSTE" "$ICONO" "$ESTADO" "$FOOTER")
 
             TELEGRAM_MESSAGE=$($JQ -n --arg cid "$C_VAL" --arg txt "$MENSAJE" '{chat_id: $cid, text: $txt, parse_mode: "Markdown"}')
-            $CURL -s -X POST "https://api.telegram.org/bot$T_VAL/sendMessage" -H "Content-Type: application/json" -d "$TELEGRAM_MESSAGE" > /dev/null
-            echo "$TOTAL_DIA_GB" > "$STATE_DIA"; echo "$TOTAL_MES_GB" > "$STATE_MES"
+
+            # 1.2 Verificar respuesta de Telegram antes de guardar el estado
+            RESPUESTA=""
+            if ! RESPUESTA="$($CURL -s -m 10 -X POST "https://api.telegram.org/bot$T_VAL/sendMessage" -H "Content-Type: application/json" -d "$TELEGRAM_MESSAGE")"; then
+                RESPUESTA=""
+            fi
+
+            if printf '%s' "$RESPUESTA" | $JQ -e '.ok == true' >/dev/null 2>&1; then
+                echo "$TOTAL_DIA_GB" > "$STATE_DIA"
+                echo "$TOTAL_MES_GB" > "$STATE_MES"
+            else
+                echo "❌ ERROR [$IFACE]: Telegram no confirmó el envío: ${RESPUESTA:-sin respuesta de red}" >&2
+                FALLO_ENVIO=1
+                continue
+            fi
         fi
     fi
 done
+
+# 1.2 Retorno con código de error si alguna interfaz falló al notificar
+[ "$FALLO_ENVIO" -eq 0 ] || exit 1

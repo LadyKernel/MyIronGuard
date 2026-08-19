@@ -22,6 +22,11 @@ DATE="/usr/bin/date"; HOSTNAME_CMD="/usr/bin/hostname"; CHMOD="/usr/bin/chmod"
 STAT="/usr/bin/stat"; SED="/usr/bin/sed"; REPO_URL="https://github.com/LadyKernel/MyIronGuard"
 export LC_ALL=C
 
+# 1.4 Verificación de dependencias
+for BIN in "$VNSTAT" "$JQ" "$CURL" "$AWK" "$DATE" "$STAT" "$CHMOD" "$SED"; do
+    [ -x "$BIN" ] || { echo "❌ ERROR: Falta o no es ejecutable: $BIN" >&2; exit 1; }
+done
+
 # --- 2. CONFIGURACIÓN ---
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="$DIR/.env"
@@ -44,15 +49,32 @@ UMBRAL_ALERTA=${UMBRAL_ALERTA:-0.9}
 STEP_D=${STEP_D:-0.05}
 STEP_M=${STEP_M:-0.1}
 
+# 1.3 Validación contra división por cero
+if ! $AWK -v l="$LIMITE_MENSUAL" 'BEGIN { exit !(l+0 > 0) }'; then
+    echo "❌ ERROR [$INTERFACE]: LIMITE_MENSUAL ($LIMITE_MENSUAL) debe ser mayor que 0" >&2
+    exit 1
+fi
+
 STATE_DIA="$DIR/.alert_state_dia_${INTERFACE}.txt"
 STATE_MES="$DIR/.alert_state_mes_${INTERFACE}.txt"
 CONTROL_MES="$DIR/.last_month_${INTERFACE}.txt"
+CONTROL_DIA="$DIR/.last_day_${INTERFACE}.txt"
 
-# --- 3. LÓGICA DE RESET MENSUAL ---
+# --- 3. LÓGICA DE RESET DIARIO Y MENSUAL ---
+DIA_ACTUAL=$($DATE +%Y-%m-%d)
 MES_ACTUAL=$($DATE +%m)
+
+[ -f "$CONTROL_DIA" ] || echo "$DIA_ACTUAL" > "$CONTROL_DIA"
 [ -f "$CONTROL_MES" ] || echo "$MES_ACTUAL" > "$CONTROL_MES"
 [ -f "$STATE_DIA" ] || echo "0" > "$STATE_DIA"; [ -f "$STATE_MES" ] || echo "0" > "$STATE_MES"
 
+# 1.1 Rollover diario del estado
+if [ "$DIA_ACTUAL" != "$(cat "$CONTROL_DIA")" ]; then
+    echo "0" > "$STATE_DIA"
+    echo "$DIA_ACTUAL" > "$CONTROL_DIA"
+fi
+
+# Reset mensual
 if [ "$MES_ACTUAL" != "$(cat "$CONTROL_MES")" ]; then
     echo "0" > "$STATE_DIA"; echo "0" > "$STATE_MES"; echo "$MES_ACTUAL" > "$CONTROL_MES"
 fi
@@ -106,7 +128,6 @@ if [ "$AVISO_DIA" -eq 1 ] || [ "$AVISO_MES" -eq 1 ]; then
     COSTE=$(awk -v tx="$TOTAL_MES_GB" -v lim="$LIMITE_MENSUAL" -v p="$PRECIO_GB" 'BEGIN { printf "%.2f", (tx > lim) ? (tx - lim) * p : 0.00 }')
     formato_dinamico() { awk -v n="$1" 'BEGIN { if (n < 1 && n > 0) printf "%.2f MB", n * 1024; else printf "%.2f GB", n; }'; }
 
-    # Lógica de títulos y footer (solo footer si ES_CRITICO es 1)
     TITULO=$([ "$ES_CRITICO" -eq 1 ] && echo "⚠️ *ALERTA VPS CRÍTICA (GCLOUD)*" || echo "ℹ️ *INFORME VPS (GCLOUD)*")
     FOOTER=$([ "$ES_CRITICO" -eq 1 ] && echo -e "\n⭐ *¡Apoya el proyecto con una estrella!*\n$REPO_URL" || echo "")
 
@@ -116,7 +137,18 @@ if [ "$AVISO_DIA" -eq 1 ] || [ "$AVISO_MES" -eq 1 ]; then
 
     if [ -n "$TOKEN" ] && [ -n "$CHAT_ID" ]; then
         TELEGRAM_MESSAGE=$($JQ -n --arg cid "$CHAT_ID" --arg txt "$MENSAJE" '{chat_id: $cid, text: $txt, parse_mode: "Markdown"}')
-        $CURL -s -m 10 -X POST "https://api.telegram.org/bot$TOKEN/sendMessage" -H "Content-Type: application/json" -d "$TELEGRAM_MESSAGE" > /dev/null
-        echo "$TOTAL_DIA_GB" > "$STATE_DIA"; echo "$TOTAL_MES_GB" > "$STATE_MES"
+        
+        # 1.2 Verificar respuesta de Telegram antes de guardar el estado
+        RESPUESTA=""
+        if ! RESPUESTA="$($CURL -s -m 10 -X POST "https://api.telegram.org/bot$TOKEN/sendMessage" -H "Content-Type: application/json" -d "$TELEGRAM_MESSAGE")"; then
+            RESPUESTA=""
+        fi
+
+        if printf '%s' "$RESPUESTA" | $JQ -e '.ok == true' >/dev/null 2>&1; then
+            echo "$TOTAL_DIA_GB" > "$STATE_DIA"; echo "$TOTAL_MES_GB" > "$STATE_MES"
+        else
+            echo "❌ ERROR [$INTERFACE]: Telegram no confirmó el envío: ${RESPUESTA:-sin respuesta de red}" >&2
+            exit 1
+        fi
     fi
 fi
