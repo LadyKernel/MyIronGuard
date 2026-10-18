@@ -1,8 +1,13 @@
-name: DevSecOps Zero-Trust Audit (LKSYS)
+name: SecAgent Audit
 
 on:
   pull_request:
-    branches: [ "main", "production" ]
+    branches: [ main, master ]
+
+# 🛡️ Añadimos los permisos requeridos por CodeQL para cumplir con Zero-Trust
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
   secagent_audit:
@@ -14,18 +19,18 @@ jobs:
       - name: 🛡️ LKSYS SecAgent - LLM Code Audit
         uses: actions/github-script@v6
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }} # Configúralo en los secretos de tu repo
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         with:
           script: |
             const fs = require('fs');
-            
+
             // 1. Recopilar archivos modificados en la Pull Request
             const { data: files } = await github.rest.pulls.listFiles({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.issue.number
             });
-            
+
             let codeToAudit = '';
             for (const file of files) {
               if (file.filename.endsWith('.js') || file.filename.endsWith('.gs') || file.filename.endsWith('.json')) {
@@ -33,10 +38,10 @@ jobs:
                 codeToAudit += `\n--- FILE: ${file.filename} ---\n${content.substring(0, 3000)}`;
               }
             }
-            
+
             if(!codeToAudit.trim()) { 
-              console.log("No scripts to audit."); 
-              return; 
+               console.log("No scripts to audit."); 
+               return; 
             }
 
             // 2. Llamada asíncrona al motor de IA para auditoría
@@ -47,10 +52,10 @@ jobs:
                 contents: [{ parts: [{ text: `Realiza una auditoría Zero-Trust de ciberseguridad sobre este código de Pull Request. Busca claves expuestas, inyecciones lógicas y fallos de DevSecOps. Responde en Markdown:\n${codeToAudit}` }] }]
               })
             });
-            
+
             const result = await response.json();
             const auditReport = result.candidates[0].content.parts[0].text;
-            
+
             // 3. Comentar los hallazgos directamente en la Pull Request de GitHub
             await github.rest.issues.createComment({
               owner: context.repo.owner,
