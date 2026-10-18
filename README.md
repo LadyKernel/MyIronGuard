@@ -8,7 +8,7 @@
 ![Versión](https://img.shields.io/badge/version-2.0-orange)
 ![Bash](https://img.shields.io/badge/script-Bash-green)
 ![GitHub Stars](https://img.shields.io/github/stars/LadyKernel/MyIronGuard?style=social)
-![Visitas](https://komarev.com/ghpvc/?username=LadyKernel&repo=MyIronGuard&color=green)
+![Visitas](https://visitor-badge.laobi.icu/badge?page_id=LadyKernel.MyIronGuard)
 
 🛡️ MyIronGuard
 Secure by design. Built by LadyKernel.
